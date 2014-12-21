@@ -1,0 +1,31 @@
+BEGIN;
+BEGIN
+EXPLAIN (ANALYZE, BUFFERS)
+select
+	sum(l_extendedprice * l_discount) as revenue
+from
+	lineitem
+where
+	l_shipdate >= date '1995-01-01'
+	and l_shipdate < cast(date '1995-01-01' + interval '1 year' as date)
+	and l_discount between 0.05 - 0.01 and 0.05 + 0.01
+	and l_quantity < 24;
+                                                                               QUERY PLAN                                                                               
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Aggregate  (cost=1467721.08..1467721.09 rows=1 width=8) (actual time=13521.790..13521.791 rows=1 loops=1)
+   Buffers: shared hit=609536 read=419535 dirtied=498
+   ->  Bitmap Heap Scan on lineitem  (cost=191760.17..1463904.97 rows=763221 width=8) (actual time=3140.759..13370.183 rows=763039 loops=1)
+         Recheck Cond: ((l_shipdate >= '1995-01-01'::date) AND (l_shipdate < '1996-01-01'::date))
+         Filter: ((l_discount >= 0.04::double precision) AND (l_discount <= 0.06::double precision) AND (l_quantity < 24::double precision))
+         Rows Removed by Filter: 8352747
+         Heap Blocks: exact=1004185
+         Buffers: shared hit=609536 read=419535 dirtied=498
+         ->  Bitmap Index Scan on lineitem_l_shipdate_l_suppkey__idx  (cost=0.00..191569.36 rows=9140880 width=0) (actual time=2786.241..2786.241 rows=9115786 loops=1)
+               Index Cond: ((l_shipdate >= '1995-01-01'::date) AND (l_shipdate < '1996-01-01'::date))
+               Buffers: shared read=24886
+ Planning time: 2.855 ms
+ Execution time: 13524.387 ms
+(13 rows)
+
+COMMIT;
+COMMIT
